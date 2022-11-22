@@ -3,8 +3,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.spark.*;
 
 public class Preprocessor {
+
+    public static final SparkConf config = new SparkConf()
+            .setMaster("local[*]")
+            .setAppName("SoccerParser");
 
     private final ArrayList<Animal> animals;
 //    private final Pattern IS_ANIMAL_CATEGORY_PATTERN = Pattern.compile("\\[\\[Category:.*\\b(mammals|vertebrates|invertebrates|reptiles|amphibians|insects)\\b.*?]]", Pattern.CASE_INSENSITIVE);

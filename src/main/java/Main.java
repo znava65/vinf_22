@@ -8,7 +8,5 @@ public class Main {
             System.err.println("Couldn't open file");
             System.out.println(e.toString());
         }
-        System.out.println(preprocessor.getIndex().get("panda"));
-        System.out.println(preprocessor.getIndex().get("frog"));
     }
 }
