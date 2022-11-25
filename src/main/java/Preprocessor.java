@@ -1,19 +1,20 @@
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.spark.*;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SQLContext;
+import org.codehaus.janino.Java;
 
-public class Preprocessor {
+public class Preprocessor implements Serializable {
 
-    public static final SparkConf config = new SparkConf()
-            .setMaster("local[*]")
-            .setAppName("SoccerParser");
-
-    private final ArrayList<Animal> animals;
 //    private final Pattern IS_ANIMAL_CATEGORY_PATTERN = Pattern.compile("\\[\\[Category:.*\\b(mammals|vertebrates|invertebrates|reptiles|amphibians|insects)\\b.*?]]", Pattern.CASE_INSENSITIVE);
-    private final Pattern IS_ANIMAL_PATTERN = Pattern.compile("wikispecies|animalia|inhabits?\\b|speciesbox", Pattern.CASE_INSENSITIVE);
+    private final Pattern IS_ANIMAL_PATTERN = Pattern.compile("\\b\\[{0,2}(animalia|inhabits?\\b|carnivor|herbivor|omnivor|live|behaviou?r|chordata|vertebrate|herd|mammal|fish|bird|swim|run\\b|fly|hunt|move)|={1,3}[^\\n]*?habitat", Pattern.CASE_INSENSITIVE);
     private final Pattern IS_EXTINCT_PATTERN = Pattern.compile("extinct|saurs?", Pattern.CASE_INSENSITIVE);
     private final Pattern LOCATION_SENTENCE_PATTERN = Pattern.compile("(\\.\\s)?\\n?[A-Z][^.={};]*?(\\bdistrib|present\\s(in|on)|found\\s(on|in|through|from)|occurs?\\s(on|in|through|from|off)|\\blocat|\\bhabit|\\blives?\\s|native)[^.={};]*\\b[A-Z][^.={};]*\\.?\\n?");
     private final Pattern LOCATION_INFO_PATTERN = Pattern.compile("(\\bdistrib|present\\s(in|on)|found\\s(in|on)|\\blocat|\\bhabit|\\blives?\\s)[^.]*\\b[A-Z][^.]*\\.?\\n?");
@@ -50,63 +51,31 @@ public class Preprocessor {
 
     private final Pattern ACCEPTED_HABITATS_PATTERN = Pattern.compile("\\b\\[{0,2}(savannah?|woodland|shrubland|grassland|bushland|desert|tundra|seas?(\\s|])|river|lake|marsh|forest|rainforest|mountain|ground)", Pattern.CASE_INSENSITIVE);
 
-    private HashMap<String, ArrayList<Long>> index;
-    public Preprocessor() {
-        this.animals = new ArrayList<>();
+    private HashMap<String, ArrayList<Animal>> index;
+
+    private String path;
+
+    private final JavaRDD<Row> rdd;
+    public Preprocessor(String path) {
+        this.path = path;
         this.index = new HashMap<>();
+        this.rdd = Main.sqlc.read().format("com.databricks.spark.xml").option("rowTag", "page").load(path).toJavaRDD();
     }
 
-    public void parsePages(String path) throws IOException {
-        StringBuilder stringBuilder;
-        BufferedReader br = new BufferedReader(new FileReader(path));
-        String line;
-        String content;
-        Animal animal;
-        Pattern pageStartPattern = Pattern.compile("<page>");
-        Pattern pageEndPattern = Pattern.compile("</page>");
-        Pattern titlePattern = Pattern.compile("<title>.*?</title>");
-        long i = 0;
-        String[] tokens;
+    public JavaRDD<Animal> parsePages() {
+        return this.rdd.map(page -> {
+            String title = page.getAs("title");
+            String content = clearContent(page.toString());
+            if (isAnimal(content)) {
+                Animal animal = new Animal(title.toLowerCase(), content);
+                animal.setLocations(findLocations(animal));
+                animal.setHabitats(findHabitats(animal));
+                animal.setActivityTime(findActivityTime(animal));
 
-        while ((line = br.readLine()) != null) {
-            if (pageStartPattern.matcher(line).find()) {
-                animal = new Animal();
-                stringBuilder = new StringBuilder();
-                do {
-                    stringBuilder.append(line).append("\n");
-                    // check if there is a title in the line
-                    if (titlePattern.matcher(line).find()) {
-                        animal.setTitle(line.replaceAll(".*<title>", "").replaceAll("</title>.*", "").toLowerCase());
-                    }
-                    line = br.readLine();
-                }
-                while(!pageEndPattern.matcher(line).find());
-
-                stringBuilder.append(line);
-                content = clearContent(stringBuilder.toString());
-                if (isAnimal(content)) {
-                    animal.setContent(content);
-                    animals.add(animal);
-                    animal.setLocations(findLocations(animal));
-                    animal.setActivityTime(findActivityTime(animal));
-                    animal.setHabitats(findHabitats(animal));
-
-                    System.out.println(animal.getTitle());
-                    System.out.println("Locations: " + animal.getLocations().toString());
-                    System.out.println("Activity: " + animal.getActivityTime().toString());
-                    System.out.println("Habitats: " + animal.getHabitats().toString());
-                    System.out.println();
-
-                    //indexing
-                    tokens = animal.getTitle().split("\\s");
-                    for (String token : tokens) {
-                        if (!this.index.containsKey(token)) this.index.put(token, new ArrayList<>());
-                        this.index.get(token).add(i);
-                    }
-                    i++;
-                }
+                return animal;
             }
-        }
+            return null;
+        }).filter(Objects::nonNull);
     }
 
     private String clearContent(String content) {
@@ -125,14 +94,14 @@ public class Preprocessor {
         String group;
         short extinctCounter = 0;
 
+        if (!Pattern.compile("wikispecies", Pattern.CASE_INSENSITIVE).matcher(content).find())
+            return false;
+
         BufferedReader br = new BufferedReader(new StringReader(content));
         try {
             while ((line = br.readLine()) != null) {
                 Matcher matcher = IS_ANIMAL_PATTERN.matcher(line);
                 Matcher isExtinctMatcher = IS_EXTINCT_PATTERN.matcher(line);
-                if (Pattern.compile("plantae|fungi|virae|\\[\\[Category:.*flora.*?]]", Pattern.CASE_INSENSITIVE).matcher(line).find()) {
-                    return false;
-                }
                 if (matcher.find() && !matches.contains((group = matcher.group().toLowerCase()))) {
                     matches.add(group);
                 }
@@ -145,7 +114,7 @@ public class Preprocessor {
             System.err.println("Error reading content");
         }
 
-        if (extinctCounter >= 10) {
+        if (extinctCounter >= 15) {
             return false;
         }
 
@@ -337,11 +306,19 @@ public class Preprocessor {
             }
     }
 
-    public ArrayList<Animal> getAnimals() {
-        return animals;
+    public HashMap<String, ArrayList<Animal>> getIndex() {
+        return index;
     }
 
-    public HashMap<String, ArrayList<Long>> getIndex() {
-        return index;
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    public JavaRDD<Row> getRdd() {
+        return rdd;
     }
 }
