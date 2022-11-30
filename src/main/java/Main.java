@@ -6,19 +6,18 @@ import org.apache.spark.sql.SQLContext;
 
 import java.io.*;
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Scanner;
+import java.sql.SQLOutput;
+import java.util.*;
 
 public class Main {
-    public static HashMap<String, ArrayList<Animal>> index;
+    public static HashMap<String, ArrayList<Integer>> index;
     public static final SparkConf config = new SparkConf()
             .setMaster("local[*]")
             .setAppName("SoccerParser");
 
     public static final JavaSparkContext jsc = new JavaSparkContext(config);
     public static final SQLContext sqlc = new SQLContext(jsc);
+
     public static void main(String[] args) {
         if (args.length > 0) {
             if (args[0].equals("p"))
@@ -68,15 +67,15 @@ public class Main {
             System.out.println("Number of items: " + animals.size());
             System.out.println("Indexing...");
             index = new HashMap<>();
-            for (Animal animal : animals) {
-                String[] tokens = animal.getTitle().split("\\s");
+            for (int i=0; i < animals.size(); i++) {
+                String[] tokens = animals.get(i).getTitle().split("\\s");
                 for (String token : tokens) {
                     if (!index.containsKey(token)) index.put(token, new ArrayList<>());
-                    index.get(token).add(animal);
+                    index.get(token).add(i);
                 }
             }
-//            System.out.println("Arctic:");
-//            for (Animal a : index.get("arctic")) {
+//            for (Integer i : index.get("giraffe")) {
+//                Animal a = animals.get(i);
 //                System.out.println(a.getTitle());
 //                System.out.println(a.getLocations().toString());
 //                System.out.println(a.getHabitats().toString());
@@ -87,7 +86,7 @@ public class Main {
                 String choice = scanner.nextLine();
                 if (choice.equalsIgnoreCase("s")) {
                     System.out.println("Search:");
-                    handleSearch(scanner.nextLine());
+                    handleSearch(scanner.nextLine(), animals);
                 }
                 else if (choice.equalsIgnoreCase("m")) {
                     System.out.println("Search the first animal:");
@@ -102,9 +101,55 @@ public class Main {
         }
     }
 
-    public static void handleSearch(String searchTerm) {
+    public static void handleSearch(String searchTerm, List<Animal> animals) {
+        String[] tokens = searchTerm.split("\\s");
+        if (tokens.length == 1) {
+            for (Integer i : index.get(tokens[0].toLowerCase())) {
+                Animal a = animals.get(i);
+                System.out.println("Title: " + a.getTitle());
+                System.out.println("Locations: " + a.getLocations().toString());
+                System.out.println("Habitats: " + a.getHabitats().toString());
+                System.out.println("Activity: " + a.getActivityTime().toString());
+                System.out.println();
+            }
+        }
+        else {
 
+        }
     }
 
-    public
+    public static ArrayList<Integer> intersect(ArrayList<Integer> p1, ArrayList<Integer> p2) {
+        Iterator<Integer> i_p1 = p1.iterator();
+        Iterator<Integer> i_p2 = p2.iterator();
+        Integer cur_p1 = i_p1.next();
+        Integer cur_p2 = i_p2.next();
+        ArrayList<Integer> result = new ArrayList<>();
+
+        while (cur_p1 != null && cur_p2 != null) {
+            if (cur_p1.equals(cur_p2)) {
+                result.add(cur_p1);
+                cur_p1 = i_p1.next();
+                cur_p2 = i_p2.next();
+            }
+            else if (cur_p1 < cur_p2) {
+                cur_p1 = i_p1.next();
+            }
+            else cur_p2 = i_p2.next();
+        }
+
+        return result;
+    }
+
+    public static ArrayList<Integer> intersect(ArrayList<ArrayList<Integer>> postingLists) {
+        postingLists.sort((a1, a2) -> a2.size() - a1.size());
+        ArrayList<Integer> result = new ArrayList<>(postingLists.get(0));
+        ArrayList<ArrayList<Integer>> terms = new ArrayList<>(postingLists.subList(1, postingLists.size()));
+
+        while (terms.size() != 0 && !result.isEmpty()) {
+            result = intersect(result, new ArrayList<>(postingLists.get(0)));
+            terms = new ArrayList<>(postingLists.subList(1, postingLists.size()));
+        }
+
+        return result;
+    }
 }
