@@ -51,14 +51,11 @@ public class Preprocessor implements Serializable {
 
     private final Pattern ACCEPTED_HABITATS_PATTERN = Pattern.compile("\\b\\[{0,2}(savannah?|woodland|shrubland|grassland|bushland|desert|tundra|seas?(\\s|])|river|lake|marsh|forest|rainforest|mountain|ground)", Pattern.CASE_INSENSITIVE);
 
-    private HashMap<String, ArrayList<Animal>> index;
-
     private String path;
 
     private final JavaRDD<Row> rdd;
     public Preprocessor(String path) {
         this.path = path;
-        this.index = new HashMap<>();
         this.rdd = Main.sqlc.read().format("com.databricks.spark.xml").option("rowTag", "page").load(path).toJavaRDD();
     }
 
@@ -71,6 +68,7 @@ public class Preprocessor implements Serializable {
                 animal.setLocations(findLocations(animal));
                 animal.setHabitats(findHabitats(animal));
                 animal.setActivityTime(findActivityTime(animal));
+                System.out.println(animal.getTitle());
 
                 return animal;
             }
@@ -137,7 +135,7 @@ public class Preprocessor implements Serializable {
 
         if (firstParagraphMatcher.find()) {
             for (String acceptedLocation : acceptedLocations) {
-                locationMatcher = Pattern.compile("([^.,\\s]*?\\s){0,3}" + acceptedLocation + "s?n?\\b", Pattern.CASE_INSENSITIVE).matcher(firstParagraphMatcher.group());
+                locationMatcher = Pattern.compile("([^.,\\s]*?\\s){0,3}\\b\\[{0,2}" + acceptedLocation + "s?n?]{0,2}\\b", Pattern.CASE_INSENSITIVE).matcher(firstParagraphMatcher.group());
                 while (locationMatcher.find()) {
                     for (String acceptedSubLocation : acceptedSubLocations) {
                         subLocationMatcher = Pattern.compile(acceptedSubLocation, Pattern.CASE_INSENSITIVE).matcher(locationMatcher.group());
@@ -179,13 +177,13 @@ public class Preprocessor implements Serializable {
         while (sentenceMatcher.find()) {
             sentenceGroup = sentenceMatcher.group();
             sentenceGroup = sentenceGroup.replaceAll("not.*", "").replaceAll("except.*", "");
-            if (!Pattern.compile("(" + tokens[tokens.length-1] + "|they|species|\\bit\\b)", Pattern.CASE_INSENSITIVE).matcher(sentenceMatcher.group()).find()) {
+            if (!Pattern.compile("(" + tokens[tokens.length-1].replaceAll("\\(?\\)?", "") + "|they|species|\\bit\\b)", Pattern.CASE_INSENSITIVE).matcher(sentenceMatcher.group()).find()) {
                 continue;
             }
             possibleLocationMatcher = LOCATION_PATTERN.matcher(sentenceGroup);
             while (possibleLocationMatcher.find()) {
                 for (String acceptedLocation : acceptedLocations) {
-                    if (Pattern.compile(acceptedLocation, Pattern.CASE_INSENSITIVE).matcher(possibleLocationMatcher.group()).find()) {
+                    if (Pattern.compile("\\b\\[{0,2}" + acceptedLocation, Pattern.CASE_INSENSITIVE).matcher(possibleLocationMatcher.group()).find()) {
                         locationFlag = true;
                         for (String acceptedSubLocation : acceptedSubLocations) {
                             subLocationMatcher = Pattern.compile(acceptedSubLocation, Pattern.CASE_INSENSITIVE).matcher(possibleLocationMatcher.group());
@@ -223,7 +221,7 @@ public class Preprocessor implements Serializable {
         String content = animal.getContent();
         ArrayList<String> activityTime = new ArrayList<>();
         String[] tokens = animal.getTitle().split("\\s");
-        Pattern nocturnalPattern = Pattern.compile("(((they|it|species|" + tokens[tokens.length-1] +")[^.]*?nocturnal[^A-Za-z])|(nocturnal[^.A-Za-z]*?" + animal.getTitle() + "))(.*?\\.){1,2}", Pattern.CASE_INSENSITIVE);
+        Pattern nocturnalPattern = Pattern.compile(" ((they|it|species|" + tokens[tokens.length-1].replaceAll("\\)?\\(?", "") +")[^.]*?nocturnal[^A-Za-z])(.*?\\.){1,2}", Pattern.CASE_INSENSITIVE);
         Matcher nocturnalMatcher = nocturnalPattern.matcher(content);
 
         if (nocturnalMatcher.find()) {
@@ -304,10 +302,6 @@ public class Preprocessor implements Serializable {
                 locationToAdd = subLocation + " " + location;
                 if (!locations.contains(locationToAdd)) locations.add(locationToAdd);
             }
-    }
-
-    public HashMap<String, ArrayList<Animal>> getIndex() {
-        return index;
     }
 
     public String getPath() {
