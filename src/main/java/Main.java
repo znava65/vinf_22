@@ -86,6 +86,10 @@ public class Main {
                 }
                 else if (choice.equalsIgnoreCase("m")) {
                     System.out.println("Search the first animal:");
+                    Animal a1 = pickAnimal(scanner.nextLine(), animals);
+                    if (a1 != null) {
+                        System.out.println(a1.getTitle());
+                    }
                 }
                 else if (choice.equalsIgnoreCase("q")) {
                     return;
@@ -98,12 +102,90 @@ public class Main {
     }
 
     public static void handleSearch(String searchTerm, List<Animal> animals) {
-        String[] tokens = searchTerm.split("\\s");
         int order = 1;
         Animal a;
+        ArrayList<Integer> result = getResult(searchTerm);
+
+        Scanner scanner = new Scanner(System.in);
+        String choice;
+
+        if (result == null || result.isEmpty()) return;
+
+        for (Integer i : result) {
+            a = animals.get(i);
+            printAnimal(a, order);
+
+            if (order % 5 == 0 && result.size() > order) {
+                System.out.println(order + "/" + result.size() + " results fetched");
+                System.out.println("Type 'n' for the next page or any other key for closing the results:");
+                choice = scanner.nextLine();
+                if (!choice.equalsIgnoreCase("n")) break;
+            }
+            order++;
+        }
+
+        if (order-1 == result.size()) {
+            System.out.println(order-1 + "/" + result.size() + " results fetched");
+        }
+        System.out.println();
+    }
+
+    public static Animal pickAnimal(String searchTerm, List<Animal> animals) {
+        int order = 1;
+        Animal a;
+        ArrayList<Integer> result = getResult(searchTerm);
+
+        Scanner scanner = new Scanner(System.in);
+        String inp;
+
+        if (result == null || result.isEmpty()) return null;
+
+        for (Integer i : result) {
+            a = animals.get(i);
+            printAnimal(a, order);
+
+            if (order % 5 == 0 && result.size() > order) {
+                System.out.println(order + "/" + result.size() + " results fetched");
+                System.out.println("Type 'n' for the next page, number of the animal you want to pick, or any other key for closing the results:");
+                inp = scanner.nextLine();
+                if (inp.equalsIgnoreCase("n")) {
+                    order++;
+                    continue;
+                }
+                else {
+                    try {
+                        int pick = Integer.parseInt(inp)-1;
+                        return animals.get(result.get(pick));
+                    }
+                    catch (Exception e) {
+                        return null;
+                    }
+                }
+
+            }
+            order++;
+        }
+
+        if (order-1 == result.size()) {
+            System.out.println(order-1 + "/" + result.size() + " results fetched");
+        }
+        System.out.println();
+        System.out.println("Type number of the animal you want to pick, or any other key for closing the results:");
+        inp = scanner.nextLine();
+        try {
+            int pick = Integer.parseInt(inp)-1;
+            return animals.get(result.get(pick));
+        }
+        catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static ArrayList<Integer> getResult(String searchTerm) {
+        String[] tokens = searchTerm.split("\\s");
         ArrayList<Integer> result;
 
-        if (tokens.length == 0) return;
+        if (tokens.length == 0) return null;
 
         if (tokens.length == 1) {
             result = index.get(tokens[0].toLowerCase());
@@ -119,28 +201,7 @@ public class Main {
             result = intersect(postingLists);
         }
 
-        Scanner scanner = new Scanner(System.in);
-        String choice;
-
-        if (result == null) return;
-
-        for (Integer i : result) {
-            a = animals.get(i);
-            printAnimal(a, order);
-
-            if (order % 5 == 0 && result.size() > order) {
-                System.out.println(order + "/" + result.size() + " results fetched");
-                System.out.println("Type 'n' for next the page or any other key for closing the results:");
-                choice = scanner.nextLine();
-                if (!choice.equalsIgnoreCase("n")) break;
-            }
-            order++;
-        }
-
-        if (order-1 == result.size()) {
-            System.out.println(order-1 + "/" + result.size() + " results fetched");
-        }
-        System.out.println();
+        return result;
     }
 
     public static ArrayList<Integer> intersect(ArrayList<Integer> p1, ArrayList<Integer> p2) {
