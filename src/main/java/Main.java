@@ -118,11 +118,29 @@ public class Main {
             }
             result = intersect(postingLists);
         }
+
+        Scanner scanner = new Scanner(System.in);
+        String choice;
+
+        if (result == null) return;
+
         for (Integer i : result) {
             a = animals.get(i);
             printAnimal(a, order);
+
+            if (order % 5 == 0 && result.size() > order) {
+                System.out.println(order + "/" + result.size() + " results fetched");
+                System.out.println("Type 'n' for next the page or any other key for closing the results:");
+                choice = scanner.nextLine();
+                if (!choice.equalsIgnoreCase("n")) break;
+            }
             order++;
         }
+
+        if (order-1 == result.size()) {
+            System.out.println(order-1 + "/" + result.size() + " results fetched");
+        }
+        System.out.println();
     }
 
     public static ArrayList<Integer> intersect(ArrayList<Integer> p1, ArrayList<Integer> p2) {
@@ -178,6 +196,7 @@ public class Main {
             }
             System.out.println(" " + StringUtils.capitalize(a.getLocations().get(a.getLocations().size()-1)));
         }
+        else System.out.println();
 
         System.out.print("Habitats:");
         if (!a.getHabitats().isEmpty()) {
@@ -186,6 +205,7 @@ public class Main {
             }
             System.out.println(" " + a.getHabitats().get(a.getHabitats().size()-1));
         }
+        else System.out.println();
 
         System.out.print("Activity time:");
         for (String t : a.getActivityTime().subList(0, a.getActivityTime().size()-1)) {
