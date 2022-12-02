@@ -16,29 +16,30 @@ public class Preprocessor implements Serializable {
 //    private final Pattern IS_ANIMAL_CATEGORY_PATTERN = Pattern.compile("\\[\\[Category:.*\\b(mammals|vertebrates|invertebrates|reptiles|amphibians|insects)\\b.*?]]", Pattern.CASE_INSENSITIVE);
     private final Pattern IS_ANIMAL_PATTERN = Pattern.compile("\\b\\[{0,2}(animalia|inhabits?\\b|carnivor|herbivor|omnivor|live|behaviou?r|chordata|vertebrate|herd|mammal|fish|bird|swim|run\\b|fly|hunt|move)|={1,3}[^\\n]*?habitat", Pattern.CASE_INSENSITIVE);
     private final Pattern IS_EXTINCT_PATTERN = Pattern.compile("extinct|saurs?", Pattern.CASE_INSENSITIVE);
-    private final Pattern LOCATION_SENTENCE_PATTERN = Pattern.compile("(\\.\\s)?\\n?[A-Z][^.={};]*?(\\bdistrib|present\\s(in|on)|found\\s(on|in|through|from)|occurs?\\s(on|in|through|from|off)|\\blocat|\\bhabit|\\blives?\\s|native)[^.={};]*\\b[A-Z][^.={};]*\\.?\\n?");
+    private final Pattern LOCATION_SENTENCE_PATTERN = Pattern.compile("(\\.\\s)?\\n?[A-Z][^.={};]*?(\\bdistrib|present\\s(in|on)|found\\s(on|in|through|from)|occurs?\\s(on|in|through|from|off)|\\blocat|\\bhabit|\\blives?\\s|native|widespread)[^.={};]*\\b[A-Z][^.={};]*\\.?\\n?");
     private final Pattern LOCATION_INFO_PATTERN = Pattern.compile("(\\bdistrib|present\\s(in|on)|found\\s(in|on)|\\blocat|\\bhabit|\\blives?\\s)[^.]*\\b[A-Z][^.]*\\.?\\n?");
     private final Pattern LOCATION_PATTERN = Pattern.compile("([^.,\\s]*?\\s){0,3}\\[{0,2}[A-Z](\\p{L}|'|-)*\\b(\\s|]|,|\\.)([A-Z](\\p{L}|'|-)*\\s?)*");
     private final String[] acceptedLocations = {
-      "america",
-      "europe",
-      "asia",
-      "eurasia",
-      "antarctica",
-      "arctic",
-      "africa",
-      "australia",
-      "madagascar",
-      "new zealand",
-      "new guinea",
-      "china",
-      "iceland",
-      "japan",
-      "pacific",
-      "atlantic",
-      "middle east",
-      "tasmania",
-      "mediterranean",
+            "australia",
+            "madagascar",
+            "new zealand",
+            "galápagos",
+            "new guinea",
+            "america",
+            "europe",
+            "asia",
+            "eurasia",
+            "arctic",
+            "antarctic",
+            "africa",
+            "china",
+            "iceland",
+            "japan",
+            "pacific",
+            "atlantic",
+            "middle east",
+            "tasmania",
+            "mediterranean",
     };
     private final String[] acceptedSubLocations = {
             "west",
@@ -81,6 +82,7 @@ public class Preprocessor implements Serializable {
         content = Pattern.compile("</text.*?</page>.*?", Pattern.DOTALL).matcher(content).replaceAll("");
         content = content.replaceAll("&lt;ref.*?/ref&gt;", "");
         content = content.replaceAll("&lt;ref.*?/&gt;", "");
+        content = content.replaceAll("<ref>.*?</ref>", "");
         content = content.replaceAll("\\[\\[File:.*?\\n", "");
 
         return content;
@@ -135,7 +137,7 @@ public class Preprocessor implements Serializable {
 
         if (firstParagraphMatcher.find()) {
             for (String acceptedLocation : acceptedLocations) {
-                locationMatcher = Pattern.compile("([^.,\\s]*?\\s){0,3}\\b\\[{0,2}" + acceptedLocation + "s?n?]{0,2}\\b", Pattern.CASE_INSENSITIVE).matcher(firstParagraphMatcher.group());
+                locationMatcher = Pattern.compile("([^.,\\s]*?\\s){0,3}(\\[{1,2}|\\b)" + acceptedLocation + "s?n?a?(]{1,2}|\\b)", Pattern.CASE_INSENSITIVE).matcher(firstParagraphMatcher.group());
                 while (locationMatcher.find()) {
                     for (String acceptedSubLocation : acceptedSubLocations) {
                         subLocationMatcher = Pattern.compile(acceptedSubLocation, Pattern.CASE_INSENSITIVE).matcher(locationMatcher.group());
@@ -151,6 +153,10 @@ public class Preprocessor implements Serializable {
                         resolveWholeLocation(acceptedLocation, locations);
                     }
                     subLocationFlag = false;
+
+                    if (Pattern.compile("endemic", Pattern.CASE_INSENSITIVE).matcher(locationMatcher.group()).find()) {
+                        return locations;
+                    }
                 }
             }
         }
@@ -183,7 +189,7 @@ public class Preprocessor implements Serializable {
             possibleLocationMatcher = LOCATION_PATTERN.matcher(sentenceGroup);
             while (possibleLocationMatcher.find()) {
                 for (String acceptedLocation : acceptedLocations) {
-                    if (Pattern.compile("\\b\\[{0,2}" + acceptedLocation, Pattern.CASE_INSENSITIVE).matcher(possibleLocationMatcher.group()).find()) {
+                    if (Pattern.compile("(\\[{1,2}|\\b)" + acceptedLocation + "s?n?a?(]{1,2}|\\b)", Pattern.CASE_INSENSITIVE).matcher(possibleLocationMatcher.group()).find()) {
                         locationFlag = true;
                         for (String acceptedSubLocation : acceptedSubLocations) {
                             subLocationMatcher = Pattern.compile(acceptedSubLocation, Pattern.CASE_INSENSITIVE).matcher(possibleLocationMatcher.group());

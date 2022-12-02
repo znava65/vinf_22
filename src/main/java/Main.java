@@ -1,3 +1,4 @@
+import org.apache.commons.lang.StringUtils;
 import org.apache.orc.impl.ConvertTreeReaderFactory;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
@@ -74,12 +75,7 @@ public class Main {
                     index.get(token).add(i);
                 }
             }
-//            for (Integer i : index.get("giraffe")) {
-//                Animal a = animals.get(i);
-//                System.out.println(a.getTitle());
-//                System.out.println(a.getLocations().toString());
-//                System.out.println(a.getHabitats().toString());
-//            }
+
             Scanner scanner = new Scanner(System.in);
             while (true) {
                 System.out.println("Type 's' for single search, 'm' to see if two animals can meet each other or 'q' to quit:");
@@ -97,59 +93,105 @@ public class Main {
             }
         }
         catch (Exception e) {
-            System.err.println("File not found");
+            e.printStackTrace();
         }
     }
 
     public static void handleSearch(String searchTerm, List<Animal> animals) {
         String[] tokens = searchTerm.split("\\s");
+        int order = 1;
+        Animal a;
+        ArrayList<Integer> result;
+
+        if (tokens.length == 0) return;
+
         if (tokens.length == 1) {
-            for (Integer i : index.get(tokens[0].toLowerCase())) {
-                Animal a = animals.get(i);
-                System.out.println("Title: " + a.getTitle());
-                System.out.println("Locations: " + a.getLocations().toString());
-                System.out.println("Habitats: " + a.getHabitats().toString());
-                System.out.println("Activity: " + a.getActivityTime().toString());
-                System.out.println();
-            }
+            result = index.get(tokens[0].toLowerCase());
+        }
+        else if (tokens.length == 2){
+            result = intersect(index.get(tokens[0].toLowerCase()), index.get(tokens[1].toLowerCase()));
         }
         else {
-
+            ArrayList<ArrayList<Integer>> postingLists = new ArrayList<>();
+            for (String token : tokens) {
+                postingLists.add(index.get(token.toLowerCase()));
+            }
+            result = intersect(postingLists);
+        }
+        for (Integer i : result) {
+            a = animals.get(i);
+            printAnimal(a, order);
+            order++;
         }
     }
 
     public static ArrayList<Integer> intersect(ArrayList<Integer> p1, ArrayList<Integer> p2) {
+        ArrayList<Integer> result = new ArrayList<>();
+
+        if (p1 == null || p2 == null) return result;
+
         Iterator<Integer> i_p1 = p1.iterator();
         Iterator<Integer> i_p2 = p2.iterator();
-        Integer cur_p1 = i_p1.next();
-        Integer cur_p2 = i_p2.next();
-        ArrayList<Integer> result = new ArrayList<>();
+        Integer cur_p1 = i_p1.hasNext() ? i_p1.next() : null;
+        Integer cur_p2 = i_p2.hasNext() ? i_p2.next() : null;
 
         while (cur_p1 != null && cur_p2 != null) {
             if (cur_p1.equals(cur_p2)) {
                 result.add(cur_p1);
-                cur_p1 = i_p1.next();
-                cur_p2 = i_p2.next();
+                cur_p1 = i_p1.hasNext() ? i_p1.next() : null;
+                cur_p2 = i_p2.hasNext() ? i_p2.next() : null;
             }
             else if (cur_p1 < cur_p2) {
-                cur_p1 = i_p1.next();
+                cur_p1 = i_p1.hasNext() ? i_p1.next() : null;
             }
-            else cur_p2 = i_p2.next();
+            else cur_p2 = i_p2.hasNext() ? i_p2.next() : null;
         }
 
         return result;
     }
 
     public static ArrayList<Integer> intersect(ArrayList<ArrayList<Integer>> postingLists) {
+        for (ArrayList<Integer> l : postingLists) {
+            if (l == null) return new ArrayList<>();
+        }
+
         postingLists.sort((a1, a2) -> a2.size() - a1.size());
         ArrayList<Integer> result = new ArrayList<>(postingLists.get(0));
         ArrayList<ArrayList<Integer>> terms = new ArrayList<>(postingLists.subList(1, postingLists.size()));
 
         while (terms.size() != 0 && !result.isEmpty()) {
-            result = intersect(result, new ArrayList<>(postingLists.get(0)));
-            terms = new ArrayList<>(postingLists.subList(1, postingLists.size()));
+            result = intersect(result, new ArrayList<>(terms.get(0)));
+            terms = new ArrayList<>(terms.subList(1, terms.size()));
         }
 
         return result;
+    }
+
+    public static void printAnimal(Animal a, int order) {
+        System.out.print(order);
+        System.out.println(". " + StringUtils.capitalize(a.getTitle()));
+
+        System.out.print("Locations:");
+        if (!a.getLocations().isEmpty()) {
+            for (String l : a.getLocations().subList(0, a.getLocations().size()-1)) {
+                System.out.print(" " + StringUtils.capitalize(l) + ",");
+            }
+            System.out.println(" " + StringUtils.capitalize(a.getLocations().get(a.getLocations().size()-1)));
+        }
+
+        System.out.print("Habitats:");
+        if (!a.getHabitats().isEmpty()) {
+            for (String h : a.getHabitats().subList(0, a.getHabitats().size()-1)) {
+                System.out.print(" " + h + ",");
+            }
+            System.out.println(" " + a.getHabitats().get(a.getHabitats().size()-1));
+        }
+
+        System.out.print("Activity time:");
+        for (String t : a.getActivityTime().subList(0, a.getActivityTime().size()-1)) {
+            System.out.print(" " + t + ",");
+        }
+        System.out.println(" " + a.getActivityTime().get(a.getActivityTime().size()-1));
+        System.out.println();
     }
 }
