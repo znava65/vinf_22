@@ -87,9 +87,17 @@ public class Main {
                 else if (choice.equalsIgnoreCase("m")) {
                     System.out.println("Search the first animal:");
                     Animal a1 = pickAnimal(scanner.nextLine(), animals);
-                    if (a1 != null) {
-                        System.out.println(a1.getTitle());
+                    if (a1 == null) {
+                        System.out.println("No animal chosen");
+                        continue;
                     }
+                    System.out.println("Search the second animal:");
+                    Animal a2 = pickAnimal(scanner.nextLine(), animals);
+                    if (a2 == null) {
+                        System.out.println("No animal chosen");
+                        continue;
+                    }
+                    canTheyMeet(a1, a2);
                 }
                 else if (choice.equalsIgnoreCase("q")) {
                     return;
@@ -109,7 +117,10 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         String choice;
 
-        if (result == null || result.isEmpty()) return;
+        if (result == null || result.isEmpty()) {
+            System.out.println("No results found");
+            return;
+        }
 
         for (Integer i : result) {
             a = animals.get(i);
@@ -181,6 +192,49 @@ public class Main {
         }
     }
 
+    public static void canTheyMeet(Animal a1, Animal a2) {
+        printAnimal(a1, 1);
+        printAnimal(a2, 2);
+
+        ArrayList<String> commonLocations = new ArrayList<>(a1.getLocations());
+        commonLocations.retainAll(a2.getLocations());
+
+        ArrayList<String> commonHabitats = new ArrayList<>(a1.getHabitats());
+        commonHabitats.retainAll(a2.getHabitats());
+
+        System.out.print("Common locations:");
+        if (!commonLocations.isEmpty()) {
+            for (String l : commonLocations.subList(0, commonLocations.size()-1)) {
+                System.out.print(" " + StringUtils.capitalize(l) + ",");
+            }
+            System.out.println(" " + StringUtils.capitalize(commonLocations.get(commonLocations.size()-1)));
+        }
+        else System.out.println(" none");
+
+        System.out.print("Common habitats:");
+        if (!commonHabitats.isEmpty()) {
+            for (String h : commonHabitats.subList(0, commonHabitats.size()-1)) {
+                System.out.print(" " + h + ",");
+            }
+            System.out.println(" " + commonHabitats.get(commonHabitats.size()-1));
+        }
+        else System.out.println(" none");
+
+        if (!commonLocations.isEmpty() && !commonHabitats.isEmpty()) {
+            System.out.println(StringUtils.capitalize(a1.getTitle()) + " and " + a2.getTitle() + " can meet each other because they have common locations and habitats.\n");
+        }
+        else if (!commonLocations.isEmpty()) {
+            System.out.println(StringUtils.capitalize(a1.getTitle()) + " and " + a2.getTitle() + " can potentially meet each other, but they do not have common habitats.\n");
+        }
+        else if (!commonHabitats.isEmpty()) {
+            System.out.println("There is little probability that " + a1.getTitle() + " and " + a2.getTitle() + " will meet each other, but they do have common habitats.\n");
+        }
+        else {
+            System.out.println(StringUtils.capitalize(a1.getTitle()) + " and " + a2.getTitle() + " cannot meet each other.\n");
+        }
+        System.out.println();
+    }
+
     public static ArrayList<Integer> getResult(String searchTerm) {
         String[] tokens = searchTerm.split("\\s");
         ArrayList<Integer> result;
@@ -205,10 +259,9 @@ public class Main {
     }
 
     public static ArrayList<Integer> intersect(ArrayList<Integer> p1, ArrayList<Integer> p2) {
+        if (p1 == null || p2 == null) return null;
+
         ArrayList<Integer> result = new ArrayList<>();
-
-        if (p1 == null || p2 == null) return result;
-
         Iterator<Integer> i_p1 = p1.iterator();
         Iterator<Integer> i_p2 = p2.iterator();
         Integer cur_p1 = i_p1.hasNext() ? i_p1.next() : null;
@@ -230,15 +283,17 @@ public class Main {
     }
 
     public static ArrayList<Integer> intersect(ArrayList<ArrayList<Integer>> postingLists) {
-        for (ArrayList<Integer> l : postingLists) {
-            if (l == null) return new ArrayList<>();
-        }
-
-        postingLists.sort((a1, a2) -> a2.size() - a1.size());
-        ArrayList<Integer> result = new ArrayList<>(postingLists.get(0));
+        if (postingLists == null || postingLists.isEmpty()) return null;
+        postingLists.sort((l1, l2) -> {
+            if (l1 == null && l2 == null) return 0;
+            else if (l1 == null) return -1;
+            else if (l2 == null) return 1;
+            else return l1.size() - l2.size();
+        });
+        ArrayList<Integer> result = postingLists.get(0);
         ArrayList<ArrayList<Integer>> terms = new ArrayList<>(postingLists.subList(1, postingLists.size()));
 
-        while (terms.size() != 0 && !result.isEmpty()) {
+        while (terms.size() != 0 && result != null && !result.isEmpty()) {
             result = intersect(result, new ArrayList<>(terms.get(0)));
             terms = new ArrayList<>(terms.subList(1, terms.size()));
         }
