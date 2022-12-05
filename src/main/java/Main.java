@@ -35,22 +35,9 @@ public class Main {
         try {
             JavaRDD<Animal> animals = preprocessor.parsePages();
             List<Animal> animalsList = animals.collect();
-            System.out.println(animalsList.get(0));
             ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("animals.bin"));
             oos.writeObject(animalsList);
             oos.close();
-//            animals.foreach(a -> {
-//                System.out.println(a.getTitle());
-//                String[] tokens = a.getTitle().split("\\s");
-//                for (String token : tokens) {
-//                    if (!index.containsKey(token)) index.put(token, new ArrayList<>());
-//                    index.get(token).add(a);
-//                }
-//            });
-
-//            System.out.println(index.get("bald").get(0).getTitle());
-//            System.out.println(index.get("bald").get(0).getTitle());
-
         }
         catch (Exception e) {
             System.out.println(e.toString());

@@ -69,9 +69,10 @@ public class Preprocessor implements Serializable {
                 animal.setLocations(findLocations(animal));
                 animal.setHabitats(findHabitats(animal));
                 animal.setActivityTime(findActivityTime(animal));
-                System.out.println(animal.getTitle());
 
-                return animal;
+                if (!animal.getLocations().isEmpty() || !animal.getHabitats().isEmpty()) {
+                    return animal;
+                }
             }
             return null;
         }).filter(Objects::nonNull);
@@ -255,7 +256,7 @@ public class Preprocessor implements Serializable {
             habitatMatcher = ACCEPTED_HABITATS_PATTERN.matcher(firstParagraphMatcher.group());
             while (habitatMatcher.find()) {
                 group = habitatMatcher.group().toLowerCase();
-                group = group.replaceAll("\\[?]?", "").replaceAll("s?(\\s|])", "");
+                group = group.replaceAll("\\[?]?", "").replaceAll("s?(\\s|])", "").replaceAll("savannah", "savanna");
                 if (!habitats.contains(group)) habitats.add(group);
             }
         }
@@ -264,7 +265,7 @@ public class Preprocessor implements Serializable {
             habitatMatcher = ACCEPTED_HABITATS_PATTERN.matcher(habitatParagraphMatcher.group());
             while (habitatMatcher.find()) {
                 group = habitatMatcher.group().toLowerCase();
-                group = group.replaceAll("\\[?]?", "").replaceAll("s?(\\s|])", "");
+                group = group.replaceAll("\\[?]?", "").replaceAll("s?(\\s|])", "").replaceAll("savannah", "savanna");
                 if (!habitats.contains(group)) habitats.add(group);
             }
         }
@@ -273,7 +274,7 @@ public class Preprocessor implements Serializable {
             habitatMatcher = ACCEPTED_HABITATS_PATTERN.matcher(animal.getContent());
             while (habitatMatcher.find()) {
                 group = habitatMatcher.group().toLowerCase();
-                group = group.replaceAll("\\[?]?", "").replaceAll("s?(\\s|])", "");
+                group = group.replaceAll("\\[?]?", "").replaceAll("s?(\\s|])", "").replaceAll("savannah", "savanna");
                 if (wordCounts.containsKey(group)) {
                     wordCounts.put(group, wordCounts.get(group)+1);
                 }
