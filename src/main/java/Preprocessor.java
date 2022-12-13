@@ -1,23 +1,18 @@
 import java.io.*;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.spark.*;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SQLContext;
-import org.codehaus.janino.Java;
 
 public class Preprocessor implements Serializable {
 
-//    private final Pattern IS_ANIMAL_CATEGORY_PATTERN = Pattern.compile("\\[\\[Category:.*\\b(mammals|vertebrates|invertebrates|reptiles|amphibians|insects)\\b.*?]]", Pattern.CASE_INSENSITIVE);
     private final Pattern IS_ANIMAL_PATTERN = Pattern.compile("\\b\\[{0,2}(animalia|inhabits?\\b|carnivor|herbivor|omnivor|live|behaviou?r|chordata|vertebrate|herd|mammal|fish|bird|male|female|swim|run\\b|fly|hunt|move)|={1,3}[^\\n]*?habitat", Pattern.CASE_INSENSITIVE);
     private final Pattern IS_EXTINCT_PATTERN = Pattern.compile("extinct|saurs?", Pattern.CASE_INSENSITIVE);
     private final Pattern LOCATION_SENTENCE_PATTERN = Pattern.compile("(\\.\\s)?\\n?[A-Z][^.={};]*?(\\bdistrib|present\\s(in|on)|found\\s(on|in|through|from)|occurs?\\s(on|in|through|from|off)|\\blocat|\\bhabit|\\blives?\\s|native|widespread)[^.={};]*\\b[A-Z][^.={};]*\\.?\\n?");
-    private final Pattern LOCATION_INFO_PATTERN = Pattern.compile("(\\bdistrib|present\\s(in|on)|found\\s(in|on)|\\blocat|\\bhabit|\\blives?\\s)[^.]*\\b[A-Z][^.]*\\.?\\n?");
     private final Pattern LOCATION_PATTERN = Pattern.compile("([^.,\\s]*?\\s){0,3}\\[{0,2}[A-Z](\\p{L}|'|-)*\\b(\\s|]|,|\\.)([A-Z](\\p{L}|'|-)*\\s?)*");
     private final String[] acceptedLocations = {
             "australia",
@@ -54,10 +49,14 @@ public class Preprocessor implements Serializable {
 
     private String path;
 
-    private final JavaRDD<Row> rdd;
+    private JavaRDD<Row> rdd = null;
     public Preprocessor(String path) {
         this.path = path;
-        this.rdd = Main.sqlc.read().format("com.databricks.spark.xml").option("rowTag", "page").load(path).toJavaRDD();
+        try {
+            this.rdd = Main.sqlc.read().format("com.databricks.spark.xml").option("rowTag", "page").load(path).toJavaRDD();
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
     }
 
     public JavaRDD<Animal> parsePages() {
@@ -311,15 +310,17 @@ public class Preprocessor implements Serializable {
             }
     }
 
+    public Method getClearContentMethod() throws NoSuchMethodException {
+        Method method = Preprocessor.class.getDeclaredMethod("clearContent", String.class);
+        method.setAccessible(true);
+        return method;
+    }
+
     public String getPath() {
         return path;
     }
 
     public void setPath(String path) {
         this.path = path;
-    }
-
-    public JavaRDD<Row> getRdd() {
-        return rdd;
     }
 }

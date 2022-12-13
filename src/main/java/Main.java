@@ -1,13 +1,9 @@
 import org.apache.commons.lang.StringUtils;
-import org.apache.orc.impl.ConvertTreeReaderFactory;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SQLContext;
-
 import java.io.*;
-import java.lang.reflect.Array;
-import java.sql.SQLOutput;
 import java.util.*;
 
 public class Main {
@@ -30,6 +26,9 @@ public class Main {
         else System.err.println("Please specify the action: 'p' for processing or 's' for searching");
     }
 
+    /**
+     * Distributed computing on the whole english Wikipedia.
+     */
     public static void processData() {
         Preprocessor preprocessor = new Preprocessor("data/enwiki-latest-pages-articles.xml");
         try {
@@ -40,12 +39,16 @@ public class Main {
             oos.close();
         }
         catch (Exception e) {
-            System.out.println(e.toString());
+            System.out.println(e.getMessage());
         }
 
         jsc.close();
     }
 
+    /**
+     * Handles the searching part of the program. Asks the user whether to search a single animal
+     * or find if two animals can meet each other.
+     */
     public static void search() {
         try {
             System.out.println("Reading data...");
@@ -96,6 +99,11 @@ public class Main {
         }
     }
 
+    /**
+     * Gets and prints the results of the search of a single animal.
+     * @param searchTerm The user's input
+     * @param animals List of all animals
+     */
     public static void handleSearch(String searchTerm, List<Animal> animals) {
         int order = 1;
         Animal a;
@@ -128,6 +136,13 @@ public class Main {
         System.out.println();
     }
 
+    /**
+     * Similar to handleSearch(), searches the animal based on the user's input.
+     * This method is used to pick one of two animals for which we want to find out if they can meet.
+     * @param searchTerm The user's input
+     * @param animals List of all animals
+     * @return The chosen animal
+     */
     public static Animal pickAnimal(String searchTerm, List<Animal> animals) {
         int order = 1;
         Animal a;
@@ -179,6 +194,16 @@ public class Main {
         }
     }
 
+    /**
+     * Finds out if the two specified animals can meet each other.
+     * The mechanism is based of common locations and common habitats of the two animals.
+     * If there are common both locations and habitats, there is high probability that they can meet.
+     * If there are only common locations, the probability is still quite solid.
+     * If there are only common habitats, the probability is low.
+     * Otherwise, they cannot meet each other.
+     * @param a1 The first animal
+     * @param a2 The second animal
+     */
     public static void canTheyMeet(Animal a1, Animal a2) {
         printAnimal(a1, 1);
         printAnimal(a2, 2);
@@ -222,6 +247,11 @@ public class Main {
         System.out.println();
     }
 
+    /**
+     * Based on the created index, the method gets indices of all the pages relevant to the search term.
+     * @param searchTerm The user's input
+     * @return List of indices of relevant pages
+     */
     public static ArrayList<Integer> getResult(String searchTerm) {
         String[] tokens = searchTerm.split("\\s");
         ArrayList<Integer> result;
@@ -245,6 +275,12 @@ public class Main {
         return result;
     }
 
+    /**
+     * Finds the intersection of two specified posting lists.
+     * @param p1 The first posting list
+     * @param p2 The second posting list
+     * @return Intersection of the two specified posting lists
+     */
     public static ArrayList<Integer> intersect(ArrayList<Integer> p1, ArrayList<Integer> p2) {
         if (p1 == null || p2 == null) return null;
 
@@ -269,6 +305,11 @@ public class Main {
         return result;
     }
 
+    /**
+     * Finds the intersection of multiple specified posting lists.
+     * @param postingLists List of postings lists
+     * @return Intersection of the specified posting lists
+     */
     public static ArrayList<Integer> intersect(ArrayList<ArrayList<Integer>> postingLists) {
         if (postingLists == null || postingLists.isEmpty()) return null;
         postingLists.sort((l1, l2) -> {
@@ -288,6 +329,11 @@ public class Main {
         return result;
     }
 
+    /**
+     * Prints the information about the specified animal.
+     * @param a The animal whose information are about to be printed
+     * @param order Order of the animal in the list of search results
+     */
     public static void printAnimal(Animal a, int order) {
         System.out.print(order);
         System.out.println(". " + StringUtils.capitalize(a.getTitle()));
