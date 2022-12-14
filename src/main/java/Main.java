@@ -15,6 +15,11 @@ public class Main {
     public static final JavaSparkContext jsc = new JavaSparkContext(config);
     public static final SQLContext sqlc = new SQLContext(jsc);
 
+    /**
+     * with argument "p", it processes the data
+     * with argument "s", it provides the search functionality
+     * @param args
+     */
     public static void main(String[] args) {
         if (args.length > 0) {
             if (args[0].equals("p"))
