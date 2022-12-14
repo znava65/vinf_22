@@ -1,17 +1,24 @@
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class MainTest {
+class SearchTest {
+    private static Search search;
+    @BeforeAll
+    static void createSearchObject() {
+        search = new Search(null, null);
+    }
+
     /**
      * One of the posting lists is null.
      */
     @Test
     void testIntersectNull() {
         ArrayList<Integer> l1 = new ArrayList<>();
-        assertNull(Main.intersect(l1, null));
+        assertNull(search.intersect(l1, null));
     }
 
     /**
@@ -26,7 +33,7 @@ class MainTest {
             l1.add(i);
             l2.add(i+1);
         }
-        ArrayList<Integer> result = Main.intersect(l1, l2);
+        ArrayList<Integer> result = search.intersect(l1, l2);
 
         assertTrue(result.size() == 2 && result.contains(1) && result.contains(2));
     }
@@ -46,7 +53,7 @@ class MainTest {
             l2.add(i+1);
         }
 
-        ArrayList<Integer> result = Main.intersect(l1, l2);
+        ArrayList<Integer> result = search.intersect(l1, l2);
 
         assertTrue(result.size() == 2 && result.contains(2) && result.contains(3));
     }
@@ -71,7 +78,7 @@ class MainTest {
         postingLists.add(l2);
         postingLists.add(l3);
 
-        ArrayList<Integer> result = Main.intersect(postingLists);
+        ArrayList<Integer> result = search.intersect(postingLists);
 
         assertTrue(result.size() == 1 && result.contains(2));
     }
@@ -96,7 +103,7 @@ class MainTest {
         postingLists.add(l2);
         postingLists.add(l3);
 
-        ArrayList<Integer> result = Main.intersect(postingLists);
+        ArrayList<Integer> result = search.intersect(postingLists);
 
         assertTrue(result.isEmpty());
     }
