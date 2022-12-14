@@ -1,3 +1,5 @@
 .idea/
 data/
+data_small/
 animals.bin
+target/

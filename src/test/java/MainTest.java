@@ -5,12 +5,18 @@ import java.util.ArrayList;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MainTest {
+    /**
+     * One of the posting lists is null.
+     */
     @Test
     void testIntersectNull() {
         ArrayList<Integer> l1 = new ArrayList<>();
         assertNull(Main.intersect(l1, null));
     }
 
+    /**
+     * Two valid posting lists.
+     */
     @Test
     void testIntersectValid() {
         ArrayList<Integer> l1 = new ArrayList<>();
@@ -25,6 +31,9 @@ class MainTest {
         assertTrue(result.size() == 2 && result.contains(1) && result.contains(2));
     }
 
+    /**
+     * Different length of two posting lists.
+     */
     @Test
     void testIntersectDifferentLength() {
         ArrayList<Integer> l1 = new ArrayList<>();
@@ -42,6 +51,9 @@ class MainTest {
         assertTrue(result.size() == 2 && result.contains(2) && result.contains(3));
     }
 
+    /**
+     * Three valid posting lists.
+     */
     @Test
     void testIntersectMultiple() {
         ArrayList<Integer> l1 = new ArrayList<>();
@@ -64,6 +76,9 @@ class MainTest {
         assertTrue(result.size() == 1 && result.contains(2));
     }
 
+    /**
+     * Three valid posting lists with empty intersection.
+     */
     @Test
     void testIntersectMultipleEmpty() {
         ArrayList<Integer> l1 = new ArrayList<>();
