@@ -15,8 +15,8 @@ public class Main {
     public static final SQLContext sqlc = new SQLContext(jsc);
 
     /**
-     * with argument "p", it processes the data
-     * with argument "s", it provides the search functionality
+     * With argument "p", it processes the data.
+     * With argument "s", it provides the search functionality.
      * @param args
      */
     public static void main(String[] args) {
