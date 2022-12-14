@@ -15,16 +15,20 @@ public class Main {
     public static final SQLContext sqlc = new SQLContext(jsc);
 
     /**
-     * With argument "p", it processes the data.
-     * With argument "s", it provides the search functionality.
+     * With argument "process", it processes the data.
+     * With argument "search", it provides the search functionality.
      * @param args
      */
     public static void main(String[] args) {
         if (args.length > 0) {
-            if (args[0].equals("p"))
+            if (args[0].equals("process"))
                 processData();
-            else if (args[0].equals("s"))
-                search();
+            else if (args[0].equals("search")) {
+                if (args.length > 1) {
+                    search(args[1]);
+                }
+                else System.err.println("Please specify the file to be read after the 'search' argument");
+            }
             else System.err.println("Unknown argument: " + args[0]);
         }
         else System.err.println("Please specify the action: 'p' for processing or 's' for searching");
@@ -43,7 +47,7 @@ public class Main {
             oos.close();
         }
         catch (Exception e) {
-            System.out.println(e.getMessage());
+            System.out.println("Error: " + e.getMessage());
         }
 
         jsc.close();
@@ -53,10 +57,10 @@ public class Main {
      * Handles the searching part of the program. Asks the user whether to search a single animal
      * or find if two animals can meet each other.
      */
-    public static void search() {
+    public static void search(String filename) {
         try {
             System.out.println("Reading data...");
-            ObjectInputStream ois = new ObjectInputStream(new FileInputStream("animals.bin"));
+            ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filename));
             List<Animal> animals = (List<Animal>) ois.readObject();
             ois.close();
             System.out.println("Number of items: " + animals.size());
@@ -100,7 +104,7 @@ public class Main {
             }
         }
         catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Error: " + e.getMessage());
         }
     }
 }

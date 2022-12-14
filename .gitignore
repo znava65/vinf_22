@@ -1,6 +1,7 @@
 .idea/
 data/
 data_small/
-animals.bin
+out/artifacts/vinf_2022_projekt_jar/animals.bin
 target/
 vinf_2022_projekt.iml
+out/
