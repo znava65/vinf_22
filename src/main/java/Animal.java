@@ -1,6 +1,9 @@
 import java.io.Serializable;
 import java.util.ArrayList;
 
+/**
+ * Class representing an animal
+ */
 public class Animal implements Serializable {
     private String title;
     private String content;

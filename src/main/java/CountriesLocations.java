@@ -1,5 +1,9 @@
 import java.util.HashMap;
 
+/**
+ * Class containing sub-location for every country.
+ * It can be used when looking for the locations of a particular animal.
+ */
 public abstract class CountriesLocations {
     private static final HashMap<String, String> countriesLocations = new HashMap<>();
 

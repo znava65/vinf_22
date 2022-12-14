@@ -8,6 +8,9 @@ import java.util.regex.Pattern;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Row;
 
+/**
+ * Class responsible for processing the data
+ */
 public class Preprocessor implements Serializable {
 
     private final Pattern IS_ANIMAL_PATTERN = Pattern.compile("\\b\\[{0,2}(animalia|inhabits?\\b|carnivor|herbivor|omnivor|live|behaviou?r|chordata|vertebrate|herd|mammal|fish|bird|male|female|swim|run\\b|fly|hunt|move)|={1,3}[^\\n]*?habitat", Pattern.CASE_INSENSITIVE);
@@ -47,6 +50,9 @@ public class Preprocessor implements Serializable {
 
     private final Pattern ACCEPTED_HABITATS_PATTERN = Pattern.compile("\\b\\[{0,2}(savannah?|woodland|shrubland|grassland|bushland|desert|tundra|seas?(\\s|])|river|lake|marsh|forest|rainforest|mountain|ground)", Pattern.CASE_INSENSITIVE);
 
+    /**
+     * Path to the file containing the data to be processed.
+     */
     private String path;
 
     private JavaRDD<Row> rdd = null;
@@ -59,6 +65,10 @@ public class Preprocessor implements Serializable {
         }
     }
 
+    /**
+     * Distributed computing on the whole english Wikipedia.
+     * @return List of found animals
+     */
     public JavaRDD<Animal> parsePages() {
         return this.rdd.map(page -> {
             String title = page.getAs("title");
@@ -77,6 +87,11 @@ public class Preprocessor implements Serializable {
         }).filter(Objects::nonNull);
     }
 
+    /**
+     * Clears the content of the page from unnecessary parts.
+     * @param content Content of the page
+     * @return Cleared content
+     */
     private String clearContent(String content) {
         content = Pattern.compile("<page>.*?<text.*?>", Pattern.DOTALL).matcher(content).replaceAll("");
         content = Pattern.compile("</text.*?</page>.*?", Pattern.DOTALL).matcher(content).replaceAll("");
@@ -88,6 +103,11 @@ public class Preprocessor implements Serializable {
         return content;
     }
 
+    /**
+     * Finds out whether the page is about an animal or not.
+     * @param content Cleared content of the page
+     * @return true if the page is about an animal, otherwise false
+     */
     private boolean isAnimal(String content) {
         String line;
         ArrayList<String> matches = new ArrayList<>();
@@ -126,6 +146,13 @@ public class Preprocessor implements Serializable {
         return matches.size() >= 2;
     }
 
+    /**
+     * Finds the locations which the specified animal may appear in.
+     * At first, it tries to find the locations in the first paragraph of the page.
+     * If it is not successful, it looks for the locations in the rest of the content.
+     * @param animal Specified animal
+     * @return List of all the detected locations for the specified animal
+     */
     private ArrayList<String> findLocations(Animal animal) {
         ArrayList<String> locations = new ArrayList<>();
         String content = animal.getContent();
@@ -167,7 +194,11 @@ public class Preprocessor implements Serializable {
         return locations;
     }
 
-
+    /**
+     * Detects the locations of the specified animal in the whole content of its page, except the first paragraph.
+     * @param animal Specified animal
+     * @return List of all the detected locations
+     */
     private ArrayList<String> findLocationsInContent(Animal animal) {
         ArrayList<String> locations = new ArrayList<>();
         String content = animal.getContent();
@@ -223,6 +254,11 @@ public class Preprocessor implements Serializable {
         return locations;
     }
 
+    /**
+     * Finds out whether the specified animal is diurnal, nocturnal, or both.
+     * @param animal Specified animal
+     * @return List containing "diurnal", "nocturnal", or both
+     */
     private ArrayList<String> findActivityTime(Animal animal) {
         String content = animal.getContent();
         ArrayList<String> activityTime = new ArrayList<>();
@@ -243,6 +279,14 @@ public class Preprocessor implements Serializable {
         return activityTime;
     }
 
+    /**
+     * Finds the habitats which the specified animal lives in.
+     * At first, it tries to find the habitats in the first paragraph of the page.
+     * If it is not successful, it tries to find a paragraph related to habitats.
+     * If still not successful, it looks for the habitats in the rest of the content.
+     * @param animal Specified animal
+     * @return List of all the detected locations for the specified animal
+     */
     private ArrayList<String> findHabitats(Animal animal) {
         ArrayList<String> habitats = new ArrayList<>();
         HashMap<String, Integer> wordCounts = new HashMap<>();
@@ -292,6 +336,12 @@ public class Preprocessor implements Serializable {
         return habitats;
     }
 
+    /**
+     * Adds all the sub-locations of the specified location to the list of locations already found.
+     * The sub-locations are west, north, east, south, central.
+     * @param location Location to be resolved
+     * @param locations List of already found locations of a particular animal
+     */
     private void resolveWholeLocation(String location, ArrayList<String> locations) {
         String[] subLocations = {"west", "north", "east", "south", "central"};
         String locationToAdd;
@@ -310,6 +360,11 @@ public class Preprocessor implements Serializable {
             }
     }
 
+    /**
+     * Used for unit testing.
+     * @return
+     * @throws NoSuchMethodException
+     */
     public Method getClearContentMethod() throws NoSuchMethodException {
         Method method = Preprocessor.class.getDeclaredMethod("clearContent", String.class);
         method.setAccessible(true);
